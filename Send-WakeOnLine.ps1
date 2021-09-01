@@ -170,9 +170,9 @@ Function Send-WOL {
                 # Send packets to the Broadcast address
                 $UDPclient.Connect($broadcastIP, $port)
                 [Void]$UdpClient.Send($Packet, $Packet.Length)
-                Write-Verbose "Wake-on-Lan Packet sent to $MacString on ${broadcastIP}:${port}"
+                Write-Verbose "Wake-on-Lan Packet sent to $MacString at ${broadcastIP}:${port}"
             } catch {
-                Write-Error "Packet could not be sent to $MacString on ${broadcastIP}:${port}"
+                Write-Error "Packet could not be sent to $MacString at ${broadcastIP}:${port}"
             }
 
             Write-Verbose ""
