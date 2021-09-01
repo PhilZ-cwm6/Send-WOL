@@ -55,6 +55,7 @@ PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
 
 # Examples
 .EXAMPLE
+
     Send-WOL -Verbose 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB
     # sends a WOL packet to "This LAN" brodcast address 255.255.255.255 on default port 9, destined to devices with MAC 01:23:45:67:89:AB AA:23:45:67:89:AB and CD:23:45:67:89:AB
     # be Verbose and print detailed logs
