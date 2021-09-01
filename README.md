@@ -1,18 +1,22 @@
 Send-WOL
 PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
 
+
 # HISTORY
 - v1.0.0, 01 sept 2021 : initial release
+
 
 # CREDITS
 - Chris Warwick, @cjwarwickps, January 2012 for 
 - Dr. Tobias Weltner, Apr 29, 2020
 - Aleksandar @Idera for the Get-BroadcastAddress Function
 
+
 # Synopsis
 .SYNOPSIS
 
     Send a WOL packet to a broadcast address / port
+
 
 # Description
 .Description
@@ -32,6 +36,7 @@ PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
     aliases are contained in a hash table in the script - but they could very easily be obtained from an external source such as
     a text file or a CSV file (this is left as an exercise for the reader).
 
+
 # Parameters
 .PARAMETER mac [Mandatory]
 
@@ -39,11 +44,13 @@ PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
     It can be a list of mac addresses in the format of "Send-WOL -mac MAC1,MAC2,MAC3"
     Or piped like "$mac = "MAC1", "HOST2", "HOST3" | Send-WOL"
 
+
 .PARAMETER ip [Optional, Default 255.255.255.255]
 
     Needed for a Directed-Brodcast
     The IP address of the device where the WOL packet will be sent to
     Default is "This LAN" broadcast IP 255.255.255.255
+
 
 .PARAMETER subnet [Optional, Default 255.255.255.0]
 
@@ -52,13 +59,16 @@ PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
     Exp: Send-WOL -ip 192.168.100.10 -subnet 255.255.255.0
          sends a WOL packet to 192.168.100.255
 
+
 .PARAMETER port [Optional, Default 9]
 
     Specify a custom port to send the WOL packet
 
+
 .PARAMETER Verbose
 
     be Verbose and print detailed logs
+
 
 # Examples
 .EXAMPLE
