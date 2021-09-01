@@ -59,23 +59,28 @@
 
 # Examples
 .EXAMPLE
+
     Get-Help -Name Send-WOL -Full
     # print full help
 
 .EXAMPLE
+
     Send-WOL -Verbose 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB
     # sends a WOL packet to "This LAN" brodcast address 255.255.255.255 on default port 9, destined to devices with MAC 01:23:45:67:89:AB AA:23:45:67:89:AB and CD:23:45:67:89:AB
     # in addition, it verbosely prints detailed logs
 
 .EXAMPLE
+
     Send-WOL 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB -port 7
     # sends a WOL packet to "This LAN" brodcast address 255.255.255.255 on port 7, destined to devices with MAC 01:23:45:67:89:AB AA:23:45:67:89:AB and CD:23:45:67:89:AB
 
 .EXAMPLE
+
     Send-WOL -mac 01:23:45:67:89:AB -ip 192.168.8.3
     # sends a WOL packet to 192.168.8.255 brodcast address on default port 9, destined to device with MAC 01:23:45:67:89:AB
 
 .EXAMPLE
+
     Send-WOL -mac TrueNAS,WORKSTATION -ip 192.168.8.3 -subnet 255.255.255.0 -port 7
     # sends a WOL packet to 192.168.8.255 brodcast address on port 7, destined to hosts with name aliases TrueNAS and WORKSTATION
     # !! TrueNAS and WORKSTATION MAC addresses must be hardcoded in script !!
@@ -86,6 +91,7 @@
     # be Verbose and print detailed logs
 
 .EXAMPLE
+
     Send-WOL -Verbose -Debug -LocalDebugPreference Inquire -mac TrueNAS, Workstation -ip 10.20.30.1 -subnet 255.255.255.0 -port 9
     # sends a WOL packet to 10.20.30.255 brodcast address on port 7, destined to hosts with name aliases TrueNAS and WORKSTATION
     # be Verbose and print detailed logs
