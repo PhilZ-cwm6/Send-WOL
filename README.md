@@ -22,6 +22,7 @@
 
 # Parameters
 -mac
+
     [Mandatory]
     The MAC address or Host alias of the devices to wake up
     It can be a list of mac addresses in the format of "Send-WOL -mac MAC1,MAC2,MAC3"
@@ -29,6 +30,7 @@
 
 
 -ip
+
     [Optional, Default 255.255.255.255]
     Needed for a Directed-Brodcast
     The IP address of the device where the WOL packet will be sent
@@ -36,6 +38,7 @@
 
 
 -subnet
+
     [Optional, Default 255.255.255.0]
     In conjunction with a specific ip for a Directed-Brodcast
     Will brodcast to the specified IP LAN brodcast address
@@ -44,18 +47,23 @@
 
 
 -port
+
     [Optional, Default 9]
     Specify a custom port to send the WOL packet
 
 
 -Verbose
+
     be Verbose and print detailed logs
 
 -Debug
+
     Prints debugging code in Write-Debug
 
 -LocalDebugPreference
+
     In conjunction with -Debug, sets debug option to either "SilentlyContinue", "Stop", "Continue", "Inquire", "Ignore", "Suspend", or "Break"
+
 
 # Examples
 .EXAMPLE
@@ -102,8 +110,10 @@
 # AUTHOR
     PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
 
+
 # HISTORY
     - v1.0.0, 01 sept 2021 : initial release
+
 
 # CREDITS
     - Chris Warwick, @cjwarwickps, January 2012 for 
