@@ -86,6 +86,7 @@
     # !! TrueNAS and WORKSTATION MAC addresses must be hardcoded in script !!
 
 .EXAMPLE
+
     $mac = "TrueNAS", "Workstation" | Send-WOL -Verbose -port 7 -ip 10.20.30.0
     # sends a WOL packet to 10.20.30.255 brodcast address on port 7, destined to hosts with name aliases TrueNAS and WORKSTATION
     # be Verbose and print detailed logs
