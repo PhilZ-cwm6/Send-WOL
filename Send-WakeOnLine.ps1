@@ -118,7 +118,7 @@ Function Send-WOL {
         [string]$ip="255.255.255.255",
         [string]$subnet="255.255.255.0",
         [int]$port=9,
-        [string]$LocalDebugPreference="Continue"
+        [string]$LocalDebugPreference="SilentlyContinue"
     )
 
     Begin {
