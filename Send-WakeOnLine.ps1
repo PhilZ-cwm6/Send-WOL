@@ -1,24 +1,15 @@
 <#
 .SYNOPSIS
-    Send-WOL v1.0.0 - released 01 sept 2021 by PhilZ-cwm6 @github.com
-    Send a WOL packet to a broadcast address / port
+    Send-WOL v1.0.1 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
 
 
-.Description
-    Wake on Lan (WOL) uses a “Magic Packet” that consists of six bytes of 0xFF (the physical layer broadcast address),
-    followed by 16 copies of the 6-byte (48-bit) target MAC address (see http://en.wikipedia.org/wiki/Wake-on-LAN).
+.DESCRIPTION
+    Send Wake on Lan (WOL) packet via UDP to either :
+        - this LAN Broadcast addresses (255.255.255.255) on default Port 9
+        - a specified LAN brodcast address (exp. 192.168.10.255) on default Port 9
+        - a user specified brodcast IP/Subnet and/or port number
 
-    This packet is sent via UDP to either :
-        + this LAN Broadcast addresses (255.255.255.255) on arbitrary Port 9
-        + the specified LAN brodcast address (exp. 192.168.10.255) on default Port 9
-        + a user specified brodcast IP/Subnet and/or port number
-
-    Construction of this packet in PowerShell is very straight-forward: (“$Packet = [Byte[]](,0xFF*6)+($Mac*16)”).
-
-    This script has a user editable table of saved MAC addresses to allow machine aliases to be specified as parameters to the
-    function the real addresses have been obfuscated here) and uses a regex to validate MAC address strings.  The address
-    aliases are contained in a hash table in the script - but they could very easily be obtained from an external source such as
-    a text file or a CSV file (this is left as an exercise for the reader).
+    Edit the $StaticLookupTable entries to use a Host name alias instead of the MAC address
 
 
 .PARAMETER mac
@@ -92,16 +83,12 @@
 
 
 .LINK
-    # AUTHOR
-    PhilZ-cwm6 - https://github.com/PhilZ-cwm6/Send-WOL
-
-    # HISTORY
+    # History :
         - v1.0.0, 01 sept 2021 : initial release
-
-
-    # CREDITS
-        - Chris Warwick, @cjwarwickps, January 2012 for 
-        - Dr. Tobias Weltner, Apr 29, 2020
+        - v1.0.1, 02 sept 2021 : support WOL by calling the script, no need to source the Send-WOL function first
+.LINK
+    # Credits :
+        - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
         - Aleksandar @Idera for the Get-BroadcastAddress Function
 #>
 
@@ -126,8 +113,8 @@ Function Send-WOL {
         # - we can use -mac TrueNAS and it will resolve to the MAC we define here
         $StaticLookupTable=@{
             TrueNAS  = '00-01-02-03-04-AA'
-            READYNAS = '01-02-03-04-05-AB'
             WORKSTATION = '02:23:45:67:89:AB'
+            Computer1 = '01-02-03-04-05-AB'
         }
 
         # Create an UDP client $UdpClient Socket to connect to when sending the WOL packet
@@ -211,3 +198,25 @@ function Get-BroadcastAddress {
         Result = $broadcastIP
     }
 }
+
+# If script is started with args, always pass them to Script Scope Send-WOL function
+# If script is started without args:
+#  + if it was sourced to Global scope, only display module load success
+#  + if it is not sourced to Global Scope, run Send-WOL function from Script Scope to display help
+if ($args.count -gt 0) {
+    Send-WOL $args
+    exit $?
+} else {
+    $GlobalScope = [psmoduleinfo]::new($true)
+    & $GlobalScope {
+        if (Get-Command Send-WOL -erroraction silentlycontinue) {
+            # Send-WOL function is properly sourced in Global Scope
+            Write-Output "Send-WOL module loaded."
+            Write-Output "Run 'Send-WOL -?' for help."
+            exit $?
+        }
+    }
+}
+
+# Script was started without arguments and was not sourced to Global Scope
+Send-WOL -?
