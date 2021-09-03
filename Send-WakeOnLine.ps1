@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Send-WOL v1.0.1 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
+    Send-WOL v1.0.2 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
 
 
 .DESCRIPTION
@@ -86,6 +86,7 @@
     # History :
         - v1.0.0, 01 sept 2021 : initial release
         - v1.0.1, 02 sept 2021 : support WOL by calling the script, no need to source the Send-WOL function first
+        - v1.0.2, 03 sept 2021 : fix Powershell v7 compatibility syntax in split. Do not use global context so that we can source from other scripts
 .LINK
     # Credits :
         - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
@@ -143,10 +144,11 @@ Function Send-WOL {
                 }
 
                 # Split and convert the MAC address to an array of bytes
-                $MacBytes= $MacString.Split('-:') | Foreach {[Byte]"0x$_"}
+                $MacBytesArray = $MacString -split '[:-]' | ForEach-Object { [System.Convert]::ToByte($_, 16) }
+                # $MacBytesArray = $MacString -split '[:-]' | ForEach-Object { [Byte] "0x$_"}
 
                 # WOL Packet is a byte array with the first six bytes 0xFF, followed by 16 copies of the MAC address
-                $Packet = [Byte[]](,0xFF * 6) + ($MacBytes* 16)
+                $Packet = [Byte[]](,0xFF * 6) + ($MacBytesArray * 16)
                 
                 Write-Debug "Broadcast packet: $([BitConverter]::ToString($Packet))"
 
@@ -205,18 +207,8 @@ function Get-BroadcastAddress {
 #  + if it is not sourced to Global Scope, run Send-WOL function from Script Scope to display help
 if ($args.count -gt 0) {
     Send-WOL $args
-    exit $?
 } else {
-    $GlobalScope = [psmoduleinfo]::new($true)
-    & $GlobalScope {
-        if (Get-Command Send-WOL -erroraction silentlycontinue) {
-            # Send-WOL function is properly sourced in Global Scope
-            Write-Output "Send-WOL module loaded."
-            Write-Output "Run 'Send-WOL -?' for help."
-            exit $?
-        }
-    }
+    Write-Output "Send-WOL. Load module with:"
+    Write-Output ". `"$PSCommandPath`""
+    Write-Output "Then, use Send-WOL -? for help"
 }
-
-# Script was started without arguments and was not sourced to Global Scope
-Send-WOL -?
