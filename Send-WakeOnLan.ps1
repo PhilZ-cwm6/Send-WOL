@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Send-WOL v1.0.2 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
+    Send-WOL v1.0.3 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
 
 
 .DESCRIPTION
@@ -87,11 +87,21 @@
         - v1.0.0, 01 sept 2021 : initial release
         - v1.0.1, 02 sept 2021 : support WOL by calling the script, no need to source the Send-WOL function first
         - v1.0.2, 03 sept 2021 : fix Powershell v7 compatibility syntax in split. Do not use global context so that we can source from other scripts
+        - v1.0.3, 04 sept 2021 : fix calling WOL by script name without sourcing it
 .LINK
     # Credits :
         - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
         - Aleksandar @Idera for the Get-BroadcastAddress Function
 #>
+
+Param (
+    [Parameter(Position=1)]
+    [string[]]$mac,
+    [string]$ip="255.255.255.255",
+    [string]$subnet="255.255.255.0",
+    [int]$port=9,
+    [string]$LocalDebugPreference="SilentlyContinue"
+)
 
 Function Send-WOL {
 [OutputType()]
@@ -110,6 +120,8 @@ Function Send-WOL {
     )
 
     Begin {
+        Write-Debug -Message "Rceived: Send-WOL -mac $mac -ip $ip -subnet $subnet -port $port -LocalDebugPreference $LocalDebugPreference"
+
         # The following table contains aliases for hostnames to be resolved to a mac
         # - we can use -mac TrueNAS and it will resolve to the MAC we define here
         $StaticLookupTable=@{
@@ -205,8 +217,9 @@ function Get-BroadcastAddress {
 # If script is started without args:
 #  + if it was sourced to Global scope, only display module load success
 #  + if it is not sourced to Global Scope, run Send-WOL function from Script Scope to display help
-if ($args.count -gt 0) {
-    Send-WOL $args
+
+if ($PSBoundParameters.Count -gt 0) {
+    Send-WOL -Verbose -mac $mac -ip $ip -subnet $subnet -port $port -LocalDebugPreference $LocalDebugPreference
 } else {
     Write-Output "Send-WOL. Load module with:"
     Write-Output ". `"$PSCommandPath`""
