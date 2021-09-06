@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Send-WOL v1.0.3 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
+    Send-WOL v1.0.4 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
 
 
 .DESCRIPTION
@@ -8,8 +8,8 @@
         - this LAN Broadcast addresses (255.255.255.255) on default Port 9
         - a specified LAN brodcast address (exp. 192.168.10.255) on default Port 9
         - a user specified brodcast IP/Subnet and/or port number
-
     Edit the $StaticLookupTable entries to use a Host name alias instead of the MAC address
+    Also sends a Notification in Windows if the optional BurnToast module is installed
 
 
 .PARAMETER mac
@@ -88,12 +88,15 @@
         - v1.0.1, 02 sept 2021 : support WOL by calling the script, no need to source the Send-WOL function first
         - v1.0.2, 03 sept 2021 : fix Powershell v7 compatibility syntax in split. Do not use global context so that we can source from other scripts
         - v1.0.3, 04 sept 2021 : fix calling WOL by script name without sourcing it
+        - v1.0.4, 06 sept 2021 : support optional BurnToast Notifications module, fix log message when using multiple mac entries
 .LINK
     # Credits :
         - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
         - Aleksandar @Idera for the Get-BroadcastAddress Function
 #>
 
+
+# Parameters when calling the script through script file name and not by sourcing it as a module
 Param (
     [Parameter(Position=1)]
     [string[]]$mac,
@@ -102,6 +105,11 @@ Param (
     [int]$port=9,
     [string]$LocalDebugPreference="SilentlyContinue"
 )
+
+# BurnToast module notification custom icons path (edit to full path as needed)
+$SendWOL_Success = ".\send_notification_logo_wol.png"
+$SendWOL_Warn = ".\send_notification_logo_warn.png"
+$SendWOL_Error = ".\send_notification_logo_error.png"
 
 Function Send-WOL {
 [OutputType()]
@@ -139,25 +147,30 @@ Function Send-WOL {
 
     Process {
         Foreach ($MacString in $mac) {
-            try {
+            try
+            {
+                $MacAddress = $MacString
+
                 # Check to see if a known MAC alias has been specified; if so, substitute the corresponding address
                 If ($StaticLookupTable.ContainsKey($MacString)) {
-                    Write-Verbose -Message "Found '$MacString' in lookup table"
-                    $MacString = $StaticLookupTable[$MacString]
+                    $MacAddress = $StaticLookupTable[$MacString]
+                    Write-Verbose -Message "Found '$MacString' MAC Address '$MacAddress' in lookup table"
                 }
 
                 # Validate the MAC address, 6 hex bytes separated by : or -
-                If ($MacString -NotMatch '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$') {
-                    Write-Warning "Mac address '$MacString' is invalid and was skipped. MAC must be 6 hex bytes separated by : or -"
+                If ($MacAddress -NotMatch '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$') {
+                    $log_msg = "Ignored invalid MAC address '$MacAddress'. MAC must be 6 hex bytes separated by : or -"
+                    Write-Warning "$log_msg"
                     Write-Verbose ""
+                    Send-BurnToasrNotification -UID "Send_WOL_$MacString" -Title "Send-WOL" -Text1 "Send-WOL to $MacString" -Text2 "$log_msg" -Logo "$SendWOL_Warn"
                     Continue
                 } else {
-                    Write-Verbose -Message "Using argument '$MacString'"
+                    Write-Verbose -Message "Using MAC '$MacAddress'"
                 }
 
                 # Split and convert the MAC address to an array of bytes
-                $MacBytesArray = $MacString -split '[:-]' | ForEach-Object { [System.Convert]::ToByte($_, 16) }
-                # $MacBytesArray = $MacString -split '[:-]' | ForEach-Object { [Byte] "0x$_"}
+                $MacBytesArray = $MacAddress -split '[:-]' | ForEach-Object { [System.Convert]::ToByte($_, 16) }
+                # $MacBytesArray = $MacAddress -split '[:-]' | ForEach-Object { [Byte] "0x$_"}
 
                 # WOL Packet is a byte array with the first six bytes 0xFF, followed by 16 copies of the MAC address
                 $Packet = [Byte[]](,0xFF * 6) + ($MacBytesArray * 16)
@@ -166,14 +179,21 @@ Function Send-WOL {
 
                 $targetIP = [System.Net.IPAddress]::Parse($ip)
                 $broadcastIP = (Get-BroadcastAddress -IPAddress $targetIP -SubnetMask $subnet).Result
-                Write-Verbose "broadcastIP = $broadcastIP"
+                Write-Debug "broadcastIP = $broadcastIP"
 
                 # Send packets to the Broadcast address
                 $UDPclient.Connect($broadcastIP, $port)
                 [Void]$UdpClient.Send($Packet, $Packet.Length)
-                Write-Verbose "Wake-on-Lan Packet sent to $MacString at ${broadcastIP}:${port}"
+
+                $log_msg = "WOL Packet sent to $MacString at ${broadcastIP}:${port}"
+                Write-Verbose "$log_msg"
+                Send-BurnToasrNotification -UID "Send_WOL_$MacString" -Title "Send-WOL" -Text1 "Send-WOL to $MacString" -Text2 "$log_msg" -Logo "$SendWOL_Success"
             } catch {
-                Write-Error "Packet could not be sent to $MacString at ${broadcastIP}:${port}"
+                $ErrorMsg = $Error[0]
+                $log_msg = "Failed to send WOL to $MacString at ${broadcastIP}:${port}"
+                Write-Error "$log_msg"
+                Write-Error "$ErrorMsg"
+                Send-BurnToasrNotification -UID "Send_WOL_$MacString" -Title "Send-WOL" -Text1 "Send-WOL to $MacString" -Text2 "$ErrorMsg" -Text3 "$log_msg" -Logo "$SendWOL_Error"
             }
 
             Write-Verbose ""
@@ -210,6 +230,24 @@ function Get-BroadcastAddress {
     New-Object psobject -Property @{
         Message = ""# not used
         Result = $broadcastIP
+    }
+}
+
+# Function to send a BurnToast notification in Windows Notification Area
+function Send-BurnToasrNotification {
+    param (
+        $UID="Send-WOL Notification",
+        $Title="Send-WOL",
+        $Text1="Log message",
+        $Text2="",
+        $Text3="",
+        $Logo = "$SendWOL_Success"
+    )
+
+    # Do not error if BurntToast module is not installed
+    if (Get-Module -ListAvailable -Name BurntToast) {
+        $Header = New-BTHeader -ID 1 -Title "$Title"
+        New-BurntToastNotification -UniqueIdentifier "$UID" -Header $Header -AppLogo "$Logo" -Text ("$Text1"), ("$Text2"), ("$Text3")
     }
 }
 
