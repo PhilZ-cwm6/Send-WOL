@@ -1,5 +1,5 @@
 # .SYNOPSIS
-    Send-WOL v1.0.3 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
+    Send-WOL v1.0.4 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
 
 
 # .DESCRIPTION
@@ -7,8 +7,8 @@
         - this LAN Broadcast addresses (255.255.255.255) on default Port 9
         - a specified LAN brodcast address (exp. 192.168.10.255) on default Port 9
         - a user specified brodcast IP/Subnet and/or port number
-
     Edit the $StaticLookupTable entries to use a Host name alias instead of the MAC address
+    Also sends a Notification in Windows if the optional BurnToast module is installed
 
 
 # .PARAMETER mac
@@ -33,7 +33,7 @@
          sends a WOL packet to 192.168.100.255
 
 
-# .PARAMETER port
+.PARAMETER port
     [Optional, Default 9]
     Specify a custom port to send the WOL packet
 
@@ -60,7 +60,7 @@
     Send-WOL 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB -port 7
     # sends a WOL packet to "This LAN" brodcast address 255.255.255.255 on port 7, destined to devices with MAC 01:23:45:67:89:AB AA:23:45:67:89:AB and CD:23:45:67:89:AB
 
-# .EXAMPLE
+.EXAMPLE
     Send-WOL -mac 01:23:45:67:89:AB -ip 192.168.8.3
     # sends a WOL packet to 192.168.8.255 brodcast address on default port 9, destined to device with MAC 01:23:45:67:89:AB
 
@@ -80,12 +80,15 @@
     # be Verbose and print detailed logs
     # print debug code and prompt after each debug line
 
-# .History :
-    - v1.0.0, 01 sept 2021 : initial release
-    - v1.0.1, 02 sept 2021 : support WOL by calling the script, no need to source the Send-WOL function first
-    - v1.0.2, 03 sept 2021 : fix Powershell v7 compatibility syntax in split. Do not use global context so that we can source from other scripts
-    - v1.0.3, 04 sept 2021 : fix calling WOL by script name without sourcing it
 
-# .Credits :
-    - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
-    - Aleksandar @Idera for the Get-BroadcastAddress Function
+# .LINK
+    # History :
+        - v1.0.0, 01 sept 2021 : initial release
+        - v1.0.1, 02 sept 2021 : support WOL by calling the script, no need to source the Send-WOL function first
+        - v1.0.2, 03 sept 2021 : fix Powershell v7 compatibility syntax in split. Do not use global context so that we can source from other scripts
+        - v1.0.3, 04 sept 2021 : fix calling WOL by script name without sourcing it
+        - v1.0.4, 06 sept 2021 : support optional BurnToast Notifications module, fix log message when using multiple mac entries
+# .LINK
+    # Credits :
+        - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
+        - Aleksandar @Idera for the Get-BroadcastAddress Function
