@@ -1,85 +1,11 @@
 <#
 .SYNOPSIS
-    Send-WOL v1.0.4 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
+    Send-WOL by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
 
 
 .DESCRIPTION
-    Send Wake on Lan (WOL) packet via UDP to either :
-        - this LAN Broadcast addresses (255.255.255.255) on default Port 9
-        - a specified LAN brodcast address (exp. 192.168.10.255) on default Port 9
-        - a user specified brodcast IP/Subnet and/or port number
-    Edit the $StaticLookupTable entries to use a Host name alias instead of the MAC address
-    Also sends a Notification in Windows if the optional BurnToast module is installed
-
-
-.PARAMETER mac
-    [Mandatory]
-    The MAC address or Host alias of the devices to wake up
-    It can be a list of mac addresses in the format of "Send-WOL -mac MAC1,MAC2,MAC3"
-    Or piped like "$mac = "MAC1", "HOST2", "HOST3" | Send-WOL"
-
-
-.PARAMETER ip
-    [Optional, Default 255.255.255.255]
-    Needed for a Directed-Brodcast
-    The IP address of the device where the WOL packet will be sent
-    Default is "This LAN" broadcast IP 255.255.255.255
-
-
-.PARAMETER subnet
-    [Optional, Default 255.255.255.0]
-    In conjunction with a specific ip for a Directed-Brodcast
-    Will brodcast to the specified IP LAN brodcast address
-    Exp: Send-WOL -ip 192.168.100.10 -subnet 255.255.255.0
-         sends a WOL packet to 192.168.100.255
-
-
-.PARAMETER port
-    [Optional, Default 9]
-    Specify a custom port to send the WOL packet
-
-
-.PARAMETER Verbose
-    be Verbose and print detailed logs
-
-.PARAMETER Debug
-    Prints debugging code in Write-Debug
-
-.PARAMETER LocalDebugPreference
-    In conjunction with -Debug, sets debug option to either "SilentlyContinue", "Stop", "Continue", "Inquire", "Ignore", "Suspend", or "Break"
-
-.EXAMPLE
-    Get-Help -Name Send-WOL -Full
-    # print full help
-
-.EXAMPLE
-    Send-WOL -Verbose 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB
-    # sends a WOL packet to "This LAN" brodcast address 255.255.255.255 on default port 9, destined to devices with MAC 01:23:45:67:89:AB AA:23:45:67:89:AB and CD:23:45:67:89:AB
-    # in addition, it verbosely prints detailed logs
-
-.EXAMPLE
-    Send-WOL 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB -port 7
-    # sends a WOL packet to "This LAN" brodcast address 255.255.255.255 on port 7, destined to devices with MAC 01:23:45:67:89:AB AA:23:45:67:89:AB and CD:23:45:67:89:AB
-
-.EXAMPLE
-    Send-WOL -mac 01:23:45:67:89:AB -ip 192.168.8.3
-    # sends a WOL packet to 192.168.8.255 brodcast address on default port 9, destined to device with MAC 01:23:45:67:89:AB
-
-.EXAMPLE
-    Send-WOL -mac TrueNAS,WORKSTATION -ip 192.168.8.3 -subnet 255.255.255.0 -port 7
-    # sends a WOL packet to 192.168.8.255 brodcast address on port 7, destined to hosts with name aliases TrueNAS and WORKSTATION
-    # !! TrueNAS and WORKSTATION MAC addresses must be hardcoded in script !!
-
-.EXAMPLE
-    $mac = "TrueNAS", "Workstation" | Send-WOL -Verbose -port 7 -ip 10.20.30.0
-    # sends a WOL packet to 10.20.30.255 brodcast address on port 7, destined to hosts with name aliases TrueNAS and WORKSTATION
-    # be Verbose and print detailed logs
-
-.EXAMPLE
-    Send-WOL -Verbose -Debug -LocalDebugPreference Inquire -mac TrueNAS, Workstation -ip 10.20.30.1 -subnet 255.255.255.0 -port 9
-    # sends a WOL packet to 10.20.30.255 brodcast address on port 7, destined to hosts with name aliases TrueNAS and WORKSTATION
-    # be Verbose and print detailed logs
-    # print debug code and prompt after each debug line
+    For a full help, first source the script by typing '. ./path/to/script.ps1'
+    Then type: 'Get-Help Send-WOL -Full'
 
 
 .LINK
@@ -89,6 +15,7 @@
         - v1.0.2, 03 sept 2021 : fix Powershell v7 compatibility syntax in split. Do not use global context so that we can source from other scripts
         - v1.0.3, 04 sept 2021 : fix calling WOL by script name without sourcing it
         - v1.0.4, 06 sept 2021 : support optional BurnToast Notifications module, fix log message when using multiple mac entries
+        - v1.0.5, 09 sept 2021 : optimize logging output and fix help display when sourcing the Send-WOL function
 .LINK
     # Credits :
         - Chris Warwick, @cjwarwickps, January 2012 / Dr. Tobias Weltner, Apr 29, 2020
@@ -103,15 +30,88 @@ Param (
     [string]$ip="255.255.255.255",
     [string]$subnet="255.255.255.0",
     [int]$port=9,
-    [string]$LocalDebugPreference="SilentlyContinue"
+    [string]$InformationPreference="Continue",
+    [string]$VerbosePreference="SilentlyContinue",
+    [string]$DebugPreference="SilentlyContinue"
 )
 
 # BurnToast module notification custom icons path (edit to full path as needed)
-$SendWOL_Success = ".\send_notification_logo_wol.png"
-$SendWOL_Warn = ".\send_notification_logo_warn.png"
-$SendWOL_Error = ".\send_notification_logo_error.png"
+$SendWOL_Success = "D:\My Docs\FreeFileSync Job\send_notification_logo_wol.png"
+$SendWOL_Warn = "D:\My Docs\FreeFileSync Job\send_notification_logo_warn.png"
+$SendWOL_Error = "D:\My Docs\FreeFileSync Job\send_notification_logo_error.png"
+
 
 Function Send-WOL {
+<#
+.SYNOPSIS
+    Send-WOL v1.0.5 by PhilZ-cwm6 https://github.com/PhilZ-cwm6/Send-WOL
+
+
+.DESCRIPTION
+    Send Wake on Lan (WOL) packet via UDP to either :
+        - default: this LAN Broadcast addresses (255.255.255.255) on Port 9
+        - a user specified brodcast IP/Subnet and/or port number
+    Edit the $StaticLookupTable entries to use a Host name alias instead of the MAC address
+    Also sends a Notification in Windows if the optional BurnToast module is installed
+
+
+.PARAMETER mac
+    [Mandatory], The MAC address or Host alias of the devices to wake up
+    It can be a list of mac addresses in the format of "Send-WOL -mac MAC1,MAC2,MAC3"
+    Or piped like "$mac = "MAC1", "HOST2", "HOST3" | Send-WOL"
+
+.PARAMETER ip
+    Needed for a Directed-Brodcast to a device IP address. Default is "This LAN" broadcast address 255.255.255.255
+
+.PARAMETER subnet
+    Use in conjunction with a specific ip for a Directed-Brodcast. Default is 255.255.255.0
+    Exp: Send-WOL Workstation -ip 192.168.100.10 -subnet 255.255.255.0
+         sends a WOL packet for Workstation MAC address to 192.168.100.255:9
+
+.PARAMETER port
+    Specify a custom port to send the WOL packet. Default is port 9
+
+.PARAMETER InformationPreference
+    [SilentlyContinue|Stop|Continue|Inquire|Ignore|Suspend|Break]
+    Default=Continue ; Dispplay informational messages to stdout and console (Write-Information)
+
+.PARAMETER VerbosePreference
+    [SilentlyContinue|Stop|Continue|Inquire|Ignore|Suspend|Break]
+    -Verbose = -VerbosePreference "Continue". Print Write-Verbose logs. Default=SilentlyContinue
+
+.PARAMETER DebugPreference
+    [SilentlyContinue|Stop|Continue|Inquire|Ignore|Suspend|Break]
+    -Debug = -DebugPreference "Continue". Print Write-Debug logs. Default=SilentlyContinue
+
+
+.EXAMPLE
+    Get-Help -Name Send-WOL -Full | Send-WOL -?
+    # print full help
+
+.EXAMPLE
+    Send-WOL 01:23:45:67:89:AB, AA:23:45:67:89:AB, CD:23:45:67:89:AB
+    # send WOL to "This LAN" brodcast address 255.255.255.255 on default port 9, destined to the 3 specified MAC addresses
+
+.EXAMPLE
+    Send-WOL -mac 01:23:45:67:89:AB -ip 192.168.8.3 -port 7
+    # send WOL to 192.168.8.255 brodcast address on port 7, destined to specified MAC
+
+.EXAMPLE
+    Send-WOL -mac Computer1,WORKSTATION -ip 192.168.8.3 -subnet 255.255.255.0 -port 7
+    # send WOL to 192.168.8.255 brodcast address on port 7, destined to hosts with name aliases Computer1 and WORKSTATION
+    # !! Computer1 and WORKSTATION MAC addresses must be hardcoded in script !!
+
+.EXAMPLE
+    $mac = "Computer1", "WORKSTATION" | Send-WOL -Verbose -port 7 -ip 10.20.30.0
+    # sends a WOL packet to 10.20.30.255 brodcast address on port 7, destined to hosts with name aliases Computer1 and WORKSTATION
+    # be verbose and print detailed logs
+
+.EXAMPLE
+    Send-WOL -Verbose -DebugPreference Inquire -mac Computer1, WORKSTATION -ip 10.20.30.1 -subnet 255.255.255.0 -port 9
+    # sends a WOL packet to 10.20.30.255 brodcast address on port 7, destined to hosts with name aliases Computer1 and WORKSTATION
+    # be verbose to print detailed logs. Print debug code and prompt after each debug line
+#>
+
 [OutputType()]
 
     # Funcion arguments
@@ -124,16 +124,17 @@ Function Send-WOL {
         [string]$ip="255.255.255.255",
         [string]$subnet="255.255.255.0",
         [int]$port=9,
-        [string]$LocalDebugPreference="SilentlyContinue"
+        [string]$InformationPreference="Continue",
+        [string]$VerbosePreference="SilentlyContinue",
+        [string]$DebugPreference="SilentlyContinue"
     )
 
     Begin {
-        Write-Debug -Message "Rceived: Send-WOL -mac $mac -ip $ip -subnet $subnet -port $port -LocalDebugPreference $LocalDebugPreference"
+        Write-Debug -Message "Rceived: Send-WOL -mac $mac -ip $ip -subnet $subnet -port $port -InformationPreference $InformationPreference -VerbosePreference $VerbosePreference -DebugPreference $DebugPreference"
 
         # The following table contains aliases for hostnames to be resolved to a mac
-        # - we can use -mac TrueNAS and it will resolve to the MAC we define here
+        # - we can use -mac WORKSTATION and it will resolve to the MAC we define here
         $StaticLookupTable=@{
-            TrueNAS  = '00-01-02-03-04-AA'
             WORKSTATION = '02:23:45:67:89:AB'
             Computer1 = '01-02-03-04-05-AB'
         }
@@ -141,8 +142,6 @@ Function Send-WOL {
         # Create an UDP client $UdpClient Socket to connect to when sending the WOL packet
         $UdpClient = New-Object System.Net.Sockets.UdpClient
 
-        # Set the debug preference to user option (Default is Continue to not prompt for entry when -Debug is used)
-        $DebugPreference=$LocalDebugPreference
     }
 
     Process {
@@ -154,18 +153,18 @@ Function Send-WOL {
                 # Check to see if a known MAC alias has been specified; if so, substitute the corresponding address
                 If ($StaticLookupTable.ContainsKey($MacString)) {
                     $MacAddress = $StaticLookupTable[$MacString]
-                    Write-Verbose -Message "Found '$MacString' MAC Address '$MacAddress' in lookup table"
+                    Write-Information "Found '$MacString' MAC Address: '$MacAddress'"
                 }
 
                 # Validate the MAC address, 6 hex bytes separated by : or -
                 If ($MacAddress -NotMatch '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$') {
                     $log_msg = "Ignored invalid MAC address '$MacAddress'. MAC must be 6 hex bytes separated by : or -"
                     Write-Warning "$log_msg"
-                    Write-Verbose ""
+                    Write-Information ""
                     Send-BurnToasrNotification -UID "Send_WOL_$MacString" -Title "Send-WOL" -Text1 "Send-WOL to $MacString" -Text2 "$log_msg" -Logo "$SendWOL_Warn"
                     Continue
-                } else {
-                    Write-Verbose -Message "Using MAC '$MacAddress'"
+                } elseif ($MacString -eq $MacAddress) {
+                    Write-Information "Sending WOL to MAC address '$MacAddress'"
                 }
 
                 # Split and convert the MAC address to an array of bytes
@@ -179,14 +178,14 @@ Function Send-WOL {
 
                 $targetIP = [System.Net.IPAddress]::Parse($ip)
                 $broadcastIP = (Get-BroadcastAddress -IPAddress $targetIP -SubnetMask $subnet).Result
-                Write-Debug "broadcastIP = $broadcastIP"
+                Write-Verbose "Using broadcastIP '$broadcastIP' and port number $port"
 
                 # Send packets to the Broadcast address
                 $UDPclient.Connect($broadcastIP, $port)
                 [Void]$UdpClient.Send($Packet, $Packet.Length)
 
                 $log_msg = "WOL Packet sent to $MacString at ${broadcastIP}:${port}"
-                Write-Verbose "$log_msg"
+                Write-Information "$log_msg"
                 Send-BurnToasrNotification -UID "Send_WOL_$MacString" -Title "Send-WOL" -Text1 "Send-WOL to $MacString" -Text2 "$log_msg" -Logo "$SendWOL_Success"
             } catch {
                 $ErrorMsg = $Error[0]
@@ -196,7 +195,7 @@ Function Send-WOL {
                 Send-BurnToasrNotification -UID "Send_WOL_$MacString" -Title "Send-WOL" -Text1 "Send-WOL to $MacString" -Text2 "$ErrorMsg" -Text3 "$log_msg" -Logo "$SendWOL_Error"
             }
 
-            Write-Verbose ""
+            Write-Information ""
         }
     }
 
@@ -257,7 +256,7 @@ function Send-BurnToasrNotification {
 #  + if it is not sourced to Global Scope, run Send-WOL function from Script Scope to display help
 
 if ($PSBoundParameters.Count -gt 0) {
-    Send-WOL -Verbose -mac $mac -ip $ip -subnet $subnet -port $port -LocalDebugPreference $LocalDebugPreference
+    Send-WOL -mac $mac -ip $ip -subnet $subnet -port $port -InformationPreference $InformationPreference -VerbosePreference $VerbosePreference -DebugPreference $DebugPreference
 } else {
     Write-Output "Send-WOL. Load module with:"
     Write-Output ". `"$PSCommandPath`""
